@@ -12,35 +12,29 @@ namespace App\Services;
 class Curl
 {
     private $ch;
-    protected $headers = [
-        "Content-type" => "application/json",
-    ];
-
-    public function __construct()
-    {
-        $this->ch = curl_init();
-        curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($this->ch, CURLOPT_HEADER, false);
-        curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, false);
-    }
 
     /**
      * get
      * @param string $url
      * @param array $params
-     * @param array $header
+     * @param array $headers
      * @return mixed|string
      */
-    public function get(string $url, array $params = [], array $header = [])
+    public function get(string $url, array $params = [], array $headers = [])
     {
-        $this->headers = array_merge($this->headers, ["Accept" => "application/json"]);
+        $initHeader = ["Accept" => "application/json"];
+        $headers = array_merge($initHeader, $headers);
+        $this->init();
+        $this->setHeaders($headers);
         if ($params) {
             $query = http_build_query($params);
             $url = $url . '?' . $query;
         }
-        $this->setHeader($header);
         curl_setopt($this->ch, CURLOPT_URL, $url);
         $result = curl_exec($this->ch);
+        if(curl_errno($this->ch)){
+            return curl_error($this->ch);
+        }
         curl_close($this->ch);
         return $this->toArray($result);
     }
@@ -49,17 +43,22 @@ class Curl
      * post
      * @param string $url
      * @param array $data
-     * @param array $header
+     * @param array $headers
      * @return mixed|string
      */
-    public function post(string $url, array $data = [], array $header = [])
+    public function post(string $url, array $data = [], array $headers = [])
     {
-        $this->headers = array_merge($this->headers, ["Content-type" => "application/json;charset='utf-8'", "Accept" => "application/json"]);
+        $initHeader = ["Content-type" => "application/json;charset='utf-8'", "Accept" => "application/json"];
+        $headers = array_merge($initHeader,$headers);
+        $this->init();
+        $this->setHeaders($headers);
         curl_setopt($this->ch, CURLOPT_URL, $url);
         curl_setopt($this->ch, CURLOPT_POST, true);
         curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($data));
-        $this->setHeader($header);
         $result = curl_exec($this->ch);
+        if(curl_errno($this->ch)){
+            return curl_error($this->ch);
+        }
         curl_close($this->ch);
         return $this->toArray($result);
     }
@@ -68,17 +67,20 @@ class Curl
      * put
      * @param string $url
      * @param array $data
-     * @param array $header
+     * @param array $headers
      * @return mixed|string
      */
-    public function put(string $url, array $data = [], array $header = [])
+    public function put(string $url, array $data = [], array $headers = [])
     {
-        $this->headers = array_merge($this->headers, ["Content-type" => "application/json"]);
-        $this->setHeader($header);
+        $this->init();
+        $this->setHeaders($headers);
         curl_setopt($this->ch, CURLOPT_URL, $url);
         curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, "PUT");
         curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($data));
         $result = curl_exec($this->ch);
+        if(curl_errno($this->ch)){
+            return curl_error($this->ch);
+        }
         curl_close($this->ch);
         return $this->toArray($result);
     }
@@ -87,17 +89,20 @@ class Curl
      * patch
      * @param string $url
      * @param array $data
-     * @param array $header
+     * @param array $headers
      * @return mixed|string
      */
-    public function patch(string $url, array $data = [], array $header = [])
+    public function patch(string $url, array $data = [], array $headers = [])
     {
-        $this->headers = array_merge($this->headers, ["Content-type" => "application/json"]);
-        $this->setHeader($header);
+        $this->init();
+        $this->setHeaders($headers);
         curl_setopt($this->ch, CURLOPT_URL, $url);
         curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, "PATCH");
         curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($data));
         $result = curl_exec($this->ch);
+        if(curl_errno($this->ch)){
+            return curl_error($this->ch);
+        }
         curl_close($this->ch);
         return $this->toArray($result);
     }
@@ -105,31 +110,44 @@ class Curl
     /** delete
      * @param string $url
      * @param array $data
-     * @param array $header
+     * @param array $headers
      * @return mixed|string
      */
-    public function delete(string $url, array $data = [], array $header = [])
+    public function delete(string $url, array $data = [], array $headers = [])
     {
-        $this->headers = array_merge($this->headers, ["Content-type" => "application/json"]);
-        $this->setHeader($header);
+        $this->init();
+        $this->setHeaders($headers);
         curl_setopt($this->ch, CURLOPT_URL, $url);
         curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, "DELETE");
         curl_setopt($this->ch, CURLOPT_POSTFIELDS, json_encode($data));
         $result = curl_exec($this->ch);
+        if(curl_errno($this->ch)){
+            return curl_error($this->ch);
+        }
         curl_close($this->ch);
         return $this->toArray($result);
     }
 
-    protected function setHeader(array $header)
+    protected function init()
     {
-        $this->headers = array_merge($this->headers, $header);
+        $this->ch = curl_init();
+        curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($this->ch, CURLOPT_HEADER, false);
+        curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, false);
+    }
+
+    protected function setHeaders(array $headers = [])
+    {
+        $initHeader = [
+            "Content-type" => "application/json",
+        ];
+        $headers = array_merge($initHeader, $headers);
         $httpHeader = [];
-        foreach ($this->headers as $key => $value) {
+        foreach ($headers as $key => $value) {
             array_push($httpHeader, $key . ':' . $value);
         }
         curl_setopt($this->ch, CURLOPT_HTTPHEADER, $httpHeader);
     }
-
     protected function toArray(string $result)
     {
         $response = json_decode($result, true);
